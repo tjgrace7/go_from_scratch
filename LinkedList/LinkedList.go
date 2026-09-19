@@ -54,7 +54,7 @@ func (l *LinkedList[T]) insertRight(data T, node *Node[T]) *Node[T] {
 }
 func (l *LinkedList[T]) PushFront(data T) *Node[T] {
 	newNode := &Node[T]{Data: data}
-
+	fmt.Println("Node Data:", data)
 	if l.Head == nil {
 		l.Head = newNode
 		l.Tail = newNode
@@ -66,6 +66,7 @@ func (l *LinkedList[T]) PushFront(data T) *Node[T] {
 	return newNode
 }
 func (l *LinkedList[T]) PushBack(data T) *Node[T] {
+
 	newNode := &Node[T]{Data: data}
 	if l.Tail == nil {
 		l.Head = newNode
@@ -91,7 +92,8 @@ func (l *LinkedList[T]) InsertIndex(data T, index int) (*Node[T], error) {
 }
 func (l *LinkedList[T]) SearchData(data T) (*Node[T], int, error) {
 	currentNode := l.Head
-	for i := 0; i < l.Size-1; i++ {
+	fmt.Println("Search Data:", data, "Current Node:", currentNode.Data, "Linked List Size:", l.Size)
+	for i := 0; i < l.Size; i++ {
 		if data == currentNode.Data {
 			return currentNode, i, nil
 		} else if currentNode.Right == nil {

@@ -69,13 +69,14 @@ func TestPutGet(t *testing.T) {
 			u.Matching = lru.link.Head.Data.Key
 		}
 		t.Log("Object Put")
-		_, e := lru.Get(u.Key)
+		node, e := lru.Get(u.Key)
 		if e != nil {
-			t.Errorf("LRU Put & Get Requests: %v, Want Error: %v", e, u.WantErr)
+			t.Errorf("LRU Put & Get Requests: %v, For user: %v, Want Error: %v", e, u.Key, u.WantErr)
 		}
 		if (u.Matching != u.Key) != u.WantErr {
 			t.Errorf("LRU Does Not Match Wanted Key: %v, Current Key: %v, Want Error: %v", u.Matching, u.Key, u.WantErr)
 		}
+		t.Log("Node:", node)
 	}
 
 }
