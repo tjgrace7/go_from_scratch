@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/tjgrace7/Http_Go_Portfolio/hashmaps"
+	"github.com/tjgrace7/go_from_scratch/hashmaps"
 )
 
 func randomString(length int) string {

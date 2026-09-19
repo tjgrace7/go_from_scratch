@@ -3,7 +3,7 @@ package userhashmap
 import (
 	"fmt"
 
-	"github.com/tjgrace7/Http_Go_Portfolio/hashmaps"
+	"github.com/tjgrace7/go_from_scratch/hashmaps"
 )
 
 type user struct {

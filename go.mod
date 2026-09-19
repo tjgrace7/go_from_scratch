@@ -1,4 +1,4 @@
-module github.com/tjgrace7/Http_Go_Portfolio
+module github.com/tjgrace7/go_from_scratch
 
 go 1.27.0
 

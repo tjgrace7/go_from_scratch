@@ -3,8 +3,8 @@ package lrucache
 import (
 	"fmt"
 
-	"github.com/tjgrace7/Http_Go_Portfolio/LinkedList"
-	"github.com/tjgrace7/Http_Go_Portfolio/hashmaps"
+	"github.com/tjgrace7/go_from_scratch/LinkedList"
+	"github.com/tjgrace7/go_from_scratch/hashmaps"
 )
 
 type LRUNode[T comparable] struct {
