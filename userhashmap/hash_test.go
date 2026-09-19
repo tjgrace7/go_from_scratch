@@ -1,9 +1,11 @@
-package main
+package userhashmap
 
 import (
 	"fmt"
 	"math/rand"
 	"testing"
+
+	"github.com/tjgrace7/Http_Go_Portfolio/hashmaps"
 )
 
 func randomString(length int) string {
@@ -33,7 +35,7 @@ func TestCollisionChain(t *testing.T) {
 	collisioncount := 0
 	var hmap hashmap = hashmap{make([]user, 10), make([]user, 0, 100)}
 	for _, u := range users {
-		collisioncount, hmap = addtomap(u, djb2, hmap, collisioncount)
+		collisioncount, hmap = addtomap(u, hashmaps.Djb2, hmap, collisioncount)
 	}
 	testusernams := []string{
 		//A layer is the number of times a nextUserIndex has been called from the user struct
@@ -44,7 +46,7 @@ func TestCollisionChain(t *testing.T) {
 	}
 	for _, u := range testusernams {
 		t.Run(u, func(t *testing.T) {
-			username, err := searchmap(u, djb2, hmap)
+			username, err := searchmap(u, hashmaps.Djb2, hmap)
 
 			if u == "Henry" || u == "mark" {
 				if err == nil {
@@ -75,7 +77,7 @@ func TestResizeSearch(t *testing.T) {
 	}
 	//This will resize the hashmap to fit users in a different spot and search for a new user
 	for i := 0; i < len(users); i++ {
-		collisioncount, hmap = addtomap(users[i], djb2, hmap, collisioncount)
+		collisioncount, hmap = addtomap(users[i], hashmaps.Djb2, hmap, collisioncount)
 		loadfactor := getloadpercentage(hmap.initial, i)
 		//change loadfactor to .90 to avoid firing test
 		if loadfactor > 0.90 {
@@ -84,7 +86,7 @@ func TestResizeSearch(t *testing.T) {
 		}
 
 	}
-	us, err := searchmap("eve", djb2, hmap)
+	us, err := searchmap("eve", hashmaps.Djb2, hmap)
 	if err != nil {
 		t.Error("Error finding user")
 	}
@@ -102,7 +104,7 @@ func BenchmarkXxx(b *testing.B) {
 		i := rand.Intn(10000)
 		u.username = randomString(15)
 		u.password = "12345"
-		collisioncount, hmap = addtomap(u, djb2, hmap, collisioncount)
+		collisioncount, hmap = addtomap(u, hashmaps.Djb2, hmap, collisioncount)
 		loadfactor := getloadpercentage(hmap.initial, loopiterations)
 		if loadfactor > 0.75 {
 			fmt.Println("Hash Map Resized")
@@ -122,7 +124,7 @@ func BenchmarkXxx(b *testing.B) {
 	fmt.Println("Test User is: ", testuser.username)
 	fmt.Println("Loop Iterations", loopiterations)
 	fmt.Println("collisions", collisioncount, "hashmap2 length: ", len(hmap.secondary))
-	founduser, err := searchmap(testuser.username, djb2, hmap)
+	founduser, err := searchmap(testuser.username, hashmaps.Djb2, hmap)
 	if err != nil {
 		fmt.Println(err)
 		return

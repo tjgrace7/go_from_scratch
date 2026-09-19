@@ -3,145 +3,155 @@ package LinkedList
 import "fmt"
 
 type Node[T comparable] struct {
-	left, right *Node[T]
-	data        T
+	Left, Right *Node[T]
+	Data        T
 }
 type LinkedList[T comparable] struct {
-	head *Node[T]
-	tail *Node[T]
-	size int
+	Head *Node[T]
+	Tail *Node[T]
+	Size int
 }
 
+func NewNode[T comparable](value T) *Node[T] {
+	return &Node[T]{Data: value}
+}
 func (l *LinkedList[T]) insertLeft(data T, node *Node[T]) *Node[T] {
-	newNode := &Node[T]{data: data, right: node}
+	newNode := &Node[T]{Data: data, Right: node}
 	if node == nil {
 		newNode = l.PushFront(data)
 		return newNode
 	}
 
-	if node.left == nil {
-		node.left = newNode
-		l.head = newNode
+	if node.Left == nil {
+		node.Left = newNode
+		l.Head = newNode
 	} else {
-		node.left.right = newNode
-		newNode.left = node.left
-		node.left = newNode
+		node.Left.Right = newNode
+		newNode.Left = node.Left
+		node.Left = newNode
 	}
-	l.size++
+	l.Size++
 	return newNode
 }
 func (l *LinkedList[T]) insertRight(data T, node *Node[T]) *Node[T] {
-	newNode := &Node[T]{data: data, left: node}
+	newNode := &Node[T]{Data: data, Left: node}
 	if node == nil {
 		newNode = l.PushBack(data)
 		return newNode
 	}
 
-	if node.right == nil {
-		node.right = newNode
-		l.tail = newNode
+	if node.Right == nil {
+		node.Right = newNode
+		l.Tail = newNode
 	} else {
-		node.right.left = newNode
-		newNode.right = node.right
-		node.right = newNode
+		node.Right.Left = newNode
+		newNode.Right = node.Right
+		node.Right = newNode
 	}
-	l.size++
+	l.Size++
 	return newNode
 
 }
 func (l *LinkedList[T]) PushFront(data T) *Node[T] {
-	newNode := &Node[T]{data: data}
-	if l.head == nil {
-		l.head = newNode
-		l.tail = newNode
+	newNode := &Node[T]{Data: data}
+
+	if l.Head == nil {
+		l.Head = newNode
+		l.Tail = newNode
+		l.Size++
 	} else {
-		newNode = l.insertLeft(data, l.head)
-		l.head = newNode
+		newNode = l.insertLeft(data, l.Head)
+		l.Head = newNode
 	}
 	return newNode
 }
 func (l *LinkedList[T]) PushBack(data T) *Node[T] {
-	newNode := &Node[T]{data: data}
-	if l.tail == nil {
-		l.head = newNode
-		l.tail = newNode
+	newNode := &Node[T]{Data: data}
+	if l.Tail == nil {
+		l.Head = newNode
+		l.Tail = newNode
+		l.Size++
 	} else {
-		newNode = l.insertRight(data, l.tail)
-		l.tail = newNode
-		fmt.Println("New Tail")
+		newNode = l.insertRight(data, l.Tail)
+		l.Tail = newNode
 	}
 	return newNode
 }
 func (l *LinkedList[T]) InsertIndex(data T, index int) (*Node[T], error) {
-	if l.size <= index {
+	if l.Size <= index {
 		return nil, fmt.Errorf("Index Out of Range")
 	} else {
-		currentNode := l.head
+		currentNode := l.Head
 		for i := 0; i < index; i++ {
-			currentNode = currentNode.right
+			currentNode = currentNode.Right
 		}
-		fmt.Println("Current Node Data", currentNode.data)
 		newNode := l.insertLeft(data, currentNode)
 		return newNode, nil
 	}
 }
 func (l *LinkedList[T]) SearchData(data T) (*Node[T], int, error) {
-	currentNode := l.head
-	for i := 0; i < l.size; i++ {
-		if data == currentNode.data {
+	currentNode := l.Head
+	for i := 0; i < l.Size-1; i++ {
+		if data == currentNode.Data {
 			return currentNode, i, nil
-		}
-		if currentNode.right == nil {
+		} else if currentNode.Right == nil {
 			break
 		}
-		currentNode = currentNode.right
+		currentNode = currentNode.Right
 	}
 	return nil, -1, fmt.Errorf("Data not in Linked List")
 }
 func (l *LinkedList[T]) DeleteData(data T) error {
-	deleteNode, index, err := l.SearchData(data)
+	deleteNode, _, err := l.SearchData(data)
 	if err != nil {
 		return fmt.Errorf("Data Not Found, Did Not Delete")
 	}
+	l.DeleteNode(*deleteNode)
+	return nil
+}
+func (l *LinkedList[T]) DeleteNode(node Node[T]) error {
+	if node.Left == nil && node.Right == nil && l.Size == 1 {
+		l.Head = nil
+		l.Tail = nil
+		l.Size = 0
+	} else if node.Left == nil && node.Right == nil {
+		//Node is not in linked list
 
-	if deleteNode.left == nil && deleteNode.right == nil {
-		l.head = nil
-		l.tail = nil
-		l.size = 0
-	} else if deleteNode.left != nil && deleteNode.right != nil {
-		deleteNode.left.right = deleteNode.right
-		deleteNode.right.left = deleteNode.left
-		l.size--
-	} else if deleteNode.left != nil && deleteNode.right == nil {
-		deleteNode.left.right = nil
-		l.tail = deleteNode.left
-		l.size--
+		return fmt.Errorf("Node not in Linked List")
+	} else if node.Left != nil && node.Right != nil {
+		node.Left.Right = node.Right
+		node.Right.Left = node.Left
+		l.Size--
+	} else if node.Left != nil && node.Right == nil {
+		node.Left.Right = nil
+		l.Tail = node.Left
+		l.Size--
 	} else {
-		deleteNode.right.left = nil
-		l.head = deleteNode.right
-		l.size--
+		node.Right.Left = nil
+		l.Head = node.Right
+		l.Size--
 	}
-	fmt.Println("Node deleted at index:", index)
 	return nil
 }
 
 // If target Index is out of Range, it will push it to the back of the LinkedList instead of erroring
-func (l *LinkedList[T]) ReIndex(data T, targetIndex int) {
+func (l *LinkedList[T]) ReIndex(data T, targetIndex int) error {
 	_, _, err := l.SearchData(data)
 	if err != nil {
-		fmt.Println(err)
+		return err
 	}
 	l.DeleteData(data)
-	if targetIndex >= l.size {
+	if targetIndex >= l.Size {
 		l.PushBack(data)
 	} else {
 		l.InsertIndex(data, targetIndex)
 	}
+	return nil
 }
 func (l *LinkedList[T]) Display() {
-	currentNode := l.head
-	for i := 0; i <= l.size; i++ {
-		fmt.Println(currentNode.data)
-		currentNode = currentNode.right
+	currentNode := l.Head
+	for i := 0; i <= l.Size-1; i++ {
+		fmt.Println(currentNode.Data)
+		currentNode = currentNode.Right
 	}
 }

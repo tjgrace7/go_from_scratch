@@ -1,4 +1,4 @@
-package main
+package hashmaps
 
 func FNV1aHash(key string) uint32 {
 	var hash uint32 = 2166136261 //offset basis, fixed constant
@@ -9,7 +9,7 @@ func FNV1aHash(key string) uint32 {
 	return hash
 }
 
-func djb2(key string) uint32 {
+func Djb2(key string) uint32 {
 	var hash uint32 = 5381
 	for i := 0; i < len(key); i++ {
 		hash = hash*33 + uint32(key[i])
@@ -17,7 +17,7 @@ func djb2(key string) uint32 {
 	return hash
 }
 
-func djb2a(key string) uint32 {
+func Djb2a(key string) uint32 {
 	var hash uint32 = 5381
 	for i := 0; i < len(key); i++ {
 		hash = hash*33 ^ uint32(key[i])

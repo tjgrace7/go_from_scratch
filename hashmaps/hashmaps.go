@@ -1,109 +1,150 @@
-package main
+package hashmaps
 
-import (
-	"fmt"
-)
+import "fmt"
 
-type user struct {
-	username      string
-	password      string
-	occupied      bool
-	nextUserindex int
+type Data[T comparable] struct {
+	Value     T
+	Key       string
+	Occupied  bool
+	nextIndex int
 }
-type hashmap struct {
-	initial   []user
-	secondary []user
+type Hashmap[T comparable] struct {
+	initial                []Data[T]
+	secondary              []Data[T]
+	OccupiedCount          int
+	SecondaryOccupiedCount int
 }
 
-func searchmap(username string, hash func(string) uint32, hmap hashmap) (user, error) {
-	value := int(hash(username)) % len(hmap.initial)
-	fmt.Println("Value is: ", value)
-	secondaryindexlayer := 0
-	var u string = hmap.initial[value].username
-	var index int = hmap.initial[value].nextUserindex
-	if u != username && index != -1 && u != "" {
-		fmt.Println("New second layer")
+func (h *Hashmap[T]) hash(key string) uint32 {
+	hash := FNV1aHash(key)
+	return hash % uint32(len(h.initial))
+}
+func Initiate[T comparable](size int) Hashmap[T] {
+	initial := make([]Data[T], size)
+	secondary := make([]Data[T], 0, size)
+	return Hashmap[T]{initial: initial, secondary: secondary}
 
-		for u != username {
-			secondaryindexlayer++
-			u = hmap.secondary[index].username
-			if u != username && hmap.secondary[index].nextUserindex != -1 {
-				index = hmap.secondary[index].nextUserindex
-			} else if u == username {
-				fmt.Println(username, "found", secondaryindexlayer, "layer(s) deep")
-				return hmap.secondary[index], nil
-			} else if hmap.secondary[index].nextUserindex == -1 {
-				fmt.Println("2nd Layer search triggered, but user not found")
-				break
-			}
+}
+func (h *Hashmap[T]) AddtoMap(data Data[T]) {
+	index := h.hash(data.Key)
+	data.nextIndex = -1
+	data.Occupied = true
+	if h.initial[index].Occupied {
+		h.secondary = append(h.secondary, data)
+		h.SecondaryOccupiedCount++
+		currentData := h.initial[index]
+		currentIndex := int(index)
+		initial := true
+		for currentData.nextIndex != -1 {
+			currentIndex = currentData.nextIndex
+			currentData = h.secondary[currentData.nextIndex]
+			initial = false
 		}
-		fmt.Println("Error")
-		return hmap.secondary[index], fmt.Errorf("User Not Found")
-	} else if (index == -1 || u == "") && u != username {
-		fmt.Println("No 2nd level chain found, and user not found.", username)
-		return hmap.initial[value], fmt.Errorf("User Not Found")
-	} else {
-		fmt.Println("Found in Initial")
-		return hmap.initial[value], nil
-	}
-}
-
-func addtomap(u user, hash func(string) uint32, hmap hashmap, collisioncount int) (int, hashmap) {
-
-	value := hash(u.username)
-	u.occupied = true
-	u.nextUserindex = -1
-	index := int(value) % len(hmap.initial)
-	if !hmap.initial[index].occupied {
-		hmap.initial[index] = u
-
-	} else {
-		collisioncount++
-
-		hmap.secondary = append(hmap.secondary, u)
-
-		last := len(hmap.secondary) - 1
-		var currentUindex = hmap.initial[index].nextUserindex
-		if currentUindex != -1 {
-			var nextUindex = hmap.secondary[currentUindex].nextUserindex
-
-			for nextUindex != -1 {
-				currentUindex = nextUindex
-				nextUindex = hmap.secondary[nextUindex].nextUserindex
-			}
-			hmap.secondary[currentUindex].nextUserindex = last
+		if initial {
+			h.initial[index].nextIndex = len(h.secondary) - 1
 		} else {
-			hmap.initial[index].nextUserindex = last
+			h.secondary[currentIndex].nextIndex = len(h.secondary) - 1
+		}
+	} else {
+		h.initial[index] = data
+		h.OccupiedCount++
+	}
+}
+func (h *Hashmap[T]) SearchMap(key string) (Data[T], error) {
+	index := h.hash(key)
+	if h.initial[index].Key == key {
+		return h.initial[index], nil
+
+	} else if !h.initial[index].Occupied {
+		return h.initial[index], fmt.Errorf("Key not Found")
+	} else {
+
+		layers := 1
+		currentData := h.initial[index]
+		for currentData.Key != key {
+			if currentData.nextIndex == -1 {
+				return currentData, fmt.Errorf("Key not Found")
+			}
+			currentData = h.secondary[currentData.nextIndex]
+			layers++
+		}
+		return currentData, nil
+	}
+}
+func (h *Hashmap[T]) Resize(sizefactor int, loadfactor float32) bool {
+	fmt.Println("Occupied Count:", h.OccupiedCount)
+	if float32(h.OccupiedCount) <= float32(len(h.initial))*loadfactor {
+		return false
+	}
+	initial := h.initial
+	h.initial = make([]Data[T], len(h.initial)*sizefactor)
+	h.OccupiedCount = 0
+	for i := 0; i < len(initial); i++ {
+		if initial[i].Occupied {
+			h.AddtoMap(initial[i])
 		}
 	}
-	return collisioncount, hmap
-
+	secondary := h.secondary
+	h.secondary = make([]Data[T], 0, len(h.initial))
+	h.SecondaryOccupiedCount = 0
+	for i := 0; i < len(secondary); i++ {
+		if secondary[i].Occupied {
+			h.AddtoMap(secondary[i])
+		}
+	}
+	fmt.Println("Occupied Count:", h.OccupiedCount)
+	return true
 }
 
-func getloadpercentage(hashmap []user, loadcount int) float64 {
-	if len(hashmap) == 0 {
-		fmt.Println("Load factor is at: 0 %")
-		return 0
-	}
-	loadfactor := float64(loadcount) / float64(len(hashmap))
-	return loadfactor
-}
+func (h *Hashmap[T]) DeleteKey(key string) error {
+	index := h.hash(key)
+	currentData := h.initial[index]
+	initial := true
+	var zero T
+	currentIndex := int(index)
+	for currentData.Key != key {
 
-func resize(hmap hashmap, scalingfactor int) (int, hashmap) {
-	nhmap := hashmap{make([]user, len(hmap.initial)*scalingfactor), make([]user, 0, 1000)}
-	collisioncount := 0
-
-	for i := 0; i < len(hmap.initial); i++ {
-		if hmap.initial[i].occupied {
-
-			collisioncount, nhmap = addtomap(hmap.initial[i], djb2, nhmap, collisioncount)
+		if currentData.nextIndex == -1 {
+			return fmt.Errorf("Key Not Found: Delete Key Function. Key: ")
 		}
-	}
-	for i := 0; i < len(hmap.secondary); i++ {
-		if hmap.secondary[i].occupied {
-			collisioncount, nhmap = addtomap(hmap.secondary[i], djb2, nhmap, collisioncount)
-		}
+		currentIndex = currentData.nextIndex
+		currentData = h.secondary[currentData.nextIndex]
+		initial = false
 	}
 
-	return collisioncount, nhmap
+	nextIndex := currentData.nextIndex
+	if initial && nextIndex == -1 {
+		h.initial[index] = Data[T]{Key: "", Value: zero, Occupied: false, nextIndex: -1}
+		h.OccupiedCount--
+		return nil
+	} else if initial && nextIndex != -1 {
+		h.initial[index] = h.secondary[nextIndex]
+		h.initial[index].nextIndex = nextIndex
+		currentIndex = nextIndex
+		nextIndex = h.secondary[currentIndex].nextIndex
+	}
+	//If the Delete key is on the first iteration of the delete process in secondary. Primary key needs update
+	first := true
+
+	for nextIndex != -1 {
+
+		h.secondary[currentIndex] = h.secondary[nextIndex]
+
+		if h.secondary[nextIndex].nextIndex != -1 {
+			h.secondary[currentIndex].nextIndex = nextIndex
+
+		}
+		currentIndex = nextIndex
+		nextIndex = h.secondary[nextIndex].nextIndex
+		first = false
+	}
+	//Resets initial index to having no follow up if the secondary only has one chain
+	if first {
+		fmt.Println("Reset initial next index:", h.initial[index].Key)
+		h.initial[index].nextIndex = -1
+	}
+	h.secondary[currentIndex] = Data[T]{Key: "", Value: zero, Occupied: false, nextIndex: -1}
+	h.SecondaryOccupiedCount--
+	return nil
+
 }
