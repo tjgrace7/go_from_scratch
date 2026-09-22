@@ -15,20 +15,27 @@ type Hashmap[T comparable] struct {
 	SecondaryOccupiedCount int
 }
 
+// Hash returns the Hash code using FNV1a
 func (h *Hashmap[T]) hash(key string) uint32 {
 	hash := FNV1aHash(key)
 	return hash % uint32(len(h.initial))
 }
+
+// Creates a HashMap
 func Initiate[T comparable](size int) Hashmap[T] {
 	initial := make([]Data[T], size)
 	secondary := make([]Data[T], 0, size)
 	return Hashmap[T]{initial: initial, secondary: secondary}
 
 }
+
+// Adds given data to map
 func (h *Hashmap[T]) AddtoMap(data Data[T]) {
 	index := h.hash(data.Key)
+	//Uses index = -1 instead of 0
 	data.nextIndex = -1
 	data.Occupied = true
+	//If the initial map is occupied begin collision chain
 	if h.initial[index].Occupied {
 		h.secondary = append(h.secondary, data)
 		h.SecondaryOccupiedCount++
@@ -50,15 +57,19 @@ func (h *Hashmap[T]) AddtoMap(data Data[T]) {
 		h.OccupiedCount++
 	}
 }
+
+// Searches map for data
 func (h *Hashmap[T]) SearchMap(key string) (Data[T], error) {
 	index := h.hash(key)
+	//If the key is in initial return
 	if h.initial[index].Key == key {
 		return h.initial[index], nil
 
 	} else if !h.initial[index].Occupied {
+		//No key found
 		return h.initial[index], fmt.Errorf("Key not Found")
 	} else {
-
+		//Begin Collision Chain
 		layers := 1
 		currentData := h.initial[index]
 		for currentData.Key != key {
@@ -71,12 +82,15 @@ func (h *Hashmap[T]) SearchMap(key string) (Data[T], error) {
 		return currentData, nil
 	}
 }
+
+// Resize Hashmap. Loadfactor determins how much of the hashmap is occupied before resizing. Size Factor determines how large to make the new size
 func (h *Hashmap[T]) Resize(sizefactor int, loadfactor float32) bool {
 	fmt.Println("Occupied Count:", h.OccupiedCount)
 	if float32(h.OccupiedCount) <= float32(len(h.initial))*loadfactor {
 		return false
 	}
 	initial := h.initial
+	//Creates new slices
 	h.initial = make([]Data[T], len(h.initial)*sizefactor)
 	h.OccupiedCount = 0
 	for i := 0; i < len(initial); i++ {
@@ -85,6 +99,7 @@ func (h *Hashmap[T]) Resize(sizefactor int, loadfactor float32) bool {
 		}
 	}
 	secondary := h.secondary
+	//Creates new slice. Eliminating Dead Delete Keys
 	h.secondary = make([]Data[T], 0, len(h.initial))
 	h.SecondaryOccupiedCount = 0
 	for i := 0; i < len(secondary); i++ {
@@ -96,12 +111,14 @@ func (h *Hashmap[T]) Resize(sizefactor int, loadfactor float32) bool {
 	return true
 }
 
+// Deletes given key.
 func (h *Hashmap[T]) DeleteKey(key string) error {
 	index := h.hash(key)
 	currentData := h.initial[index]
 	initial := true
 	var zero T
 	currentIndex := int(index)
+	//If Key is not in intial list. Begin Chaining
 	for currentData.Key != key {
 
 		if currentData.nextIndex == -1 {
@@ -111,13 +128,15 @@ func (h *Hashmap[T]) DeleteKey(key string) error {
 		currentData = h.secondary[currentData.nextIndex]
 		initial = false
 	}
-
+	//Current Data no shows the given key
 	nextIndex := currentData.nextIndex
+	//If the key was found in initial and there is no chain. Delete initial and lower occupied count then return
 	if initial && nextIndex == -1 {
 		h.initial[index] = Data[T]{Key: "", Value: zero, Occupied: false, nextIndex: -1}
 		h.OccupiedCount--
 		return nil
 	} else if initial && nextIndex != -1 {
+		//If found in intial copy next index into initial
 		h.initial[index] = h.secondary[nextIndex]
 		h.initial[index].nextIndex = nextIndex
 		currentIndex = nextIndex
@@ -125,11 +144,9 @@ func (h *Hashmap[T]) DeleteKey(key string) error {
 	}
 	//If the Delete key is on the first iteration of the delete process in secondary. Primary key needs update
 	first := true
-
+	//For as long as the next index != -1. Copy the key into the key before it
 	for nextIndex != -1 {
-
 		h.secondary[currentIndex] = h.secondary[nextIndex]
-
 		if h.secondary[nextIndex].nextIndex != -1 {
 			h.secondary[currentIndex].nextIndex = nextIndex
 
@@ -138,11 +155,12 @@ func (h *Hashmap[T]) DeleteKey(key string) error {
 		nextIndex = h.secondary[nextIndex].nextIndex
 		first = false
 	}
-	//Resets initial index to having no follow up if the secondary only has one chain
+	//Resets initial index to having no follow up if no additional keys in secondary
 	if first {
 		fmt.Println("Reset initial next index:", h.initial[index].Key)
 		h.initial[index].nextIndex = -1
 	}
+	//deletes final key. Leaving Dead Key in Secondary. This will no be in a chain, but if you look up the index, it will be empty
 	h.secondary[currentIndex] = Data[T]{Key: "", Value: zero, Occupied: false, nextIndex: -1}
 	h.SecondaryOccupiedCount--
 	return nil

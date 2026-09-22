@@ -2,18 +2,10 @@ package hashmaps
 
 import (
 	"fmt"
-	"math/rand"
 	"testing"
 )
 
-func randomString(length int) string {
-	const charset = "abcdefghijklmnopqrstuvwxyz"
-	result := make([]byte, length)
-	for i := range result {
-		result[i] = charset[rand.Intn(len(charset))]
-	}
-	return string(result)
-}
+// Tests Deleting a Key
 func TestDeleteKey(t *testing.T) {
 	users := []Data[string]{
 		{Key: "tjgrace", Value: "0"},
@@ -98,6 +90,8 @@ func TestCollisionChain(t *testing.T) {
 	}
 
 }
+
+// Tests Resize And Search
 func TestResizeSearch(t *testing.T) {
 	var hmap = Initiate[string](10)
 	users := []Data[string]{
@@ -125,6 +119,8 @@ func TestResizeSearch(t *testing.T) {
 	}
 	fmt.Println("User found", us)
 }
+
+// Tests Resizing Hashmap
 func TestResize(t *testing.T) {
 	var hmap = Initiate[string](10)
 	users := []Data[string]{
@@ -153,36 +149,4 @@ func TestResize(t *testing.T) {
 			t.Error("Should not have resized")
 		}
 	}
-}
-
-func BenchmarkXxx(b *testing.B) {
-	hmap := Initiate[string](1000000)
-	var testuser Data[string]
-	for b.Loop() {
-		var u Data[string]
-		i := rand.Intn(10000)
-		u.Key = randomString(15)
-		u.Value = "12345"
-		hmap.AddtoMap(u)
-		hmap.Resize(2, 0.75)
-		//Takes user as test user for searching where the most recent iteration of i == 219 happens.
-		//This would obviously not be used in a loading settings, but is useful for finding a random test user that is generated in this loop.
-		if i == 219 {
-			testuser = u
-		}
-
-	}
-	if testuser.Key == "" {
-		fmt.Println("Error: No user entered into test. Random integer didn't hit i")
-		return
-	}
-	fmt.Println("Test User is: ", testuser.Key)
-	fmt.Println("hashmap2 length: ", len(hmap.secondary))
-	founduser, err := hmap.SearchMap(testuser.Key)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	fmt.Println("Found User: ", founduser.Key, " Password: ", founduser.Value)
 }
