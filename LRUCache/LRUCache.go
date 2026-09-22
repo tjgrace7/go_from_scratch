@@ -18,23 +18,27 @@ type LRU[T comparable] struct {
 	size    int
 }
 
+// Create LRU
 func CreateLRU[T comparable](size int) LRU[T] {
 	return LRU[T]{size: size, link: LinkedList.LinkedList[LRUNode[T]]{}, hashmap: hashmaps.Initiate[*LinkedList.Node[LRUNode[T]]](size)}
 }
 
+// Puts the LRU in the Hashmap and Linked List
 func (l *LRU[T]) Put(key T, value T) {
 	currentNode, err := l.Get(key)
 	skey := fmt.Sprintf("%v", key)
 	data := hashmaps.Data[*LinkedList.Node[LRUNode[T]]]{Key: skey, Value: &LinkedList.Node[LRUNode[T]]{Data: LRUNode[T]{Key: skey, Value: value}}}
-	//Overwrite Data
+	//If the key is not there. Error will return not nil. Pushes Front of Linked List
 	if err != nil {
 		l.link.PushFront(LRUNode[T]{Key: skey, Value: value})
 
 	} else {
+		//If the key exists. Pushes Node to Front of Linked List. Deletes the Key from the Hashmap
 		currentNode.Data.Value = value
 		l.link.PushFront(currentNode.Data)
 		l.hashmap.DeleteKey(data.Key)
 	}
+	//Adds the key to the hashmap
 	l.hashmap.AddtoMap(data)
 	fmt.Println("LRU Size:", l.size, "Hashmap Occupancy:", l.hashmap.OccupiedCount+l.hashmap.SecondaryOccupiedCount)
 	//Evict if Occupied is greater than size
@@ -47,20 +51,27 @@ func (l *LRU[T]) Put(key T, value T) {
 
 	}
 }
+
+// Gets key
 func (l *LRU[T]) Get(key T) (*LinkedList.Node[LRUNode[T]], error) {
+	//Searches Hashmap for values
 	skey := fmt.Sprintf("%v", key)
 	data, err := l.hashmap.SearchMap(skey)
 	if err != nil {
 		return nil, err
 	}
 	fmt.Println("Data: ", data.Key)
+	//Searches for Node based on the data
 	node, _, er := l.link.SearchData(data.Value.Data)
 	if er != nil {
 		return nil, er
 	}
+	//Pushes node to front of Linked List
 	l.LeastRecentUsed(*node)
 	return node, nil
 }
+
+// Pushes Recent Used Node to Front of Linked List
 func (l *LRU[T]) LeastRecentUsed(node LinkedList.Node[LRUNode[T]]) {
 	l.link.DeleteNode(node)
 	l.link.PushFront(node.Data)

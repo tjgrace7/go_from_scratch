@@ -4,6 +4,7 @@ import (
 	"testing"
 )
 
+// Tests Eviction.
 func TestEviction(t *testing.T) {
 	lru := CreateLRU[string](5)
 	test := []struct {
@@ -21,27 +22,33 @@ func TestEviction(t *testing.T) {
 		{Key: "george", Value: "9"},
 		{Key: "will", Value: "10"},
 	}
-	//Make tjgrace maintain teh entire put method
+	//Iterates through list to add every key to LRU
+	//Make tjgrace maintain the entire put method
 	for i := 0; i < len(test)-1; i++ {
 		lru.Put(test[i].Key, test[i].Value)
+		//Getting tjgrace keeps it the most recent used and safe from eviction
 		_, err := lru.Get("tjgrace")
 		if err != nil {
 			t.Error("Error Retrieving tjgrace", err)
 		}
+		//Tests to see if a key was evicted.
 		if test[i].Key == "August" {
 			_, err = lru.Get("eve")
+			//Checks to see if eve was deleted at August. Makes sure it was deleted from Hashmap with the selected error.
 			if err == nil || err.Error() != "Key not Found" {
 
 				t.Error("eve Found. Should be Evivted. Error", err)
 			}
 		}
 	}
+	//Checks to see if Tyler is evicted
 	_, e := lru.Get("tyler")
 	if e == nil {
 		t.Error("tyler found. Should be Evicted")
 	}
 }
 
+// Tests Put and Get Methods
 func TestPutGet(t *testing.T) {
 	lru := CreateLRU[string](5)
 	test := []struct {
@@ -62,6 +69,7 @@ func TestPutGet(t *testing.T) {
 		{Key: "will", Value: "10", WantErr: false},
 	}
 	for _, u := range test {
+		//puts each key in lru
 		lru.Put(u.Key, u.Value)
 		if u.WantErr {
 			u.Matching = lru.link.Tail.Data.Key
