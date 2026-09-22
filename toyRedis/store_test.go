@@ -2,6 +2,7 @@ package main
 
 import (
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 )
@@ -72,4 +73,67 @@ func TestCleanUp(t *testing.T) {
 	if err != nil {
 		t.Error("Key Should Exist")
 	}
+}
+
+func TestConcurrency(t *testing.T) {
+	for i := 0; i < 10; i++ {
+		s := Create()
+		var wg sync.WaitGroup
+
+		s.Set([]string{"name", "tyler", "EX", "1"})
+		time.Sleep(time.Duration(1) * time.Second)
+		wg.Add(2)
+		go func() { defer wg.Done(); s.Get("name") }()
+		go func() { defer wg.Done(); s.Set([]string{"name", "George"}) }()
+		wg.Wait()
+
+		value, err := s.Get("name")
+		if err != nil {
+			t.Error("Expected Value:", err)
+		}
+		if value != "George" {
+			t.Errorf("iteration %d: expected George, got %q", i, value)
+		}
+	}
+}
+
+func BenchmarkConcurrency(b *testing.B) {
+
+	s := Create()
+	var wg sync.WaitGroup
+
+	for b.Loop() {
+		wg.Add(10)
+
+		go func() { defer wg.Done(); s.Set([]string{"name", "Tyler"}) }()
+		go func() { defer wg.Done(); s.Get("name") }()
+		go func() { defer wg.Done(); s.Set([]string{"age", "26"}) }()
+		go func() { defer wg.Done(); s.Set([]string{"age", "27"}) }()
+		go func() { defer wg.Done(); s.Get("age") }()
+		go func() { defer wg.Done(); s.Delete("age") }()
+		go func() { defer wg.Done(); s.Set([]string{"boobs", "perky"}) }()
+		go func() { defer wg.Done(); s.Set([]string{"boobs", "saggy"}) }()
+		go func() { defer wg.Done(); s.Get("boobs") }()
+		go func() { defer wg.Done(); s.Delete("boobs") }()
+		wg.Wait()
+	}
+}
+func BenchmarkSequential(b *testing.B) {
+
+	s := Create()
+
+	for b.Loop() {
+
+		s.Set([]string{"name", "Tyler"})
+		s.Get("name")
+		s.Set([]string{"age", "26"})
+		s.Set([]string{"age", "27"})
+		s.Get("age")
+		s.Delete("age")
+		s.Set([]string{"boobs", "perky"})
+		s.Set([]string{"boobs", "saggy"})
+		s.Get("boobs")
+		s.Delete("boobs")
+	}
+
 }

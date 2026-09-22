@@ -18,11 +18,11 @@ type Vertex struct {
 
 type Store struct {
 	m  map[string]Vertex
-	mu sync.Mutex
+	mu sync.RWMutex
 }
 
 func Create() *Store {
-	return &Store{m: map[string]Vertex{}, mu: sync.Mutex{}}
+	return &Store{m: map[string]Vertex{}, mu: sync.RWMutex{}}
 }
 
 func (s *Store) Set(command []string) (Vertex, error) {
@@ -55,8 +55,9 @@ func (s *Store) Set(command []string) (Vertex, error) {
 		} else {
 			v.t = ""
 		}
+		s.mu.Lock()
 		s.m[key] = v
-		fmt.Println("Key Set:", key, ":", value)
+		s.mu.Unlock()
 
 		return v, nil
 	} else {
@@ -76,32 +77,36 @@ func parseExpiry(s string) (time.Time, error) {
 }
 
 func (s *Store) Get(key string) (string, error) {
-
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	value, exists := s.m[key]
+
 	t, err := parseExpiry(value.t)
 	if err != nil {
 		return "", err
 	}
 	if t.Before(time.Now()) && !t.IsZero() {
-		fmt.Println("Value:", value)
-		s.Delete(key)
+		delete(s.m, key)
+
 		return "", fmt.Errorf("Key Expired: Deleted")
 	}
 	if exists {
-		fmt.Println("Key Found! Value:", value)
 		return value.value, nil
 	} else {
-		fmt.Println("Key Does not Exist")
 		return "", ErrKeyNotFound
 	}
 
 }
 
 func (s *Store) Delete(key string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	delete(s.m, key)
-	fmt.Println("Key:", key, "Deleted")
+
 }
 func (s *Store) CleanUp() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	for k, v := range s.m {
 		t, err := parseExpiry(v.t)
 		if err != nil {
@@ -111,4 +116,5 @@ func (s *Store) CleanUp() {
 			s.Delete(k)
 		}
 	}
+
 }
