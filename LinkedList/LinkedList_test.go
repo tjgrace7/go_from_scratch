@@ -7,6 +7,7 @@ import (
 
 // Int LinkedList Insert
 
+// Tests Integer Linked List Data Type
 func TestIntegerLinkedList(t *testing.T) {
 	values := []int{4, 7, 1, 30, 9, 20, 0, 89, 50}
 	link := &LinkedList[int]{}
@@ -36,6 +37,7 @@ func TestIntegerLinkedList(t *testing.T) {
 	link.Display()
 }
 
+// Tests Search and Reindex Functions
 func TestSearchReindex(t *testing.T) {
 	values := []string{"hello", "world", "tyler", "james", "hannah", "chloe", "programming"}
 	link := &LinkedList[string]{}
@@ -71,6 +73,8 @@ func TestSearchReindex(t *testing.T) {
 	}
 }
 
+//Tests PushFront Function
+
 func TestPushFront(t *testing.T) {
 	link := &LinkedList[string]{}
 	firststring := "Test"
@@ -90,6 +94,8 @@ func TestPushFront(t *testing.T) {
 		t.Error("Error Pushing Front 3")
 	}
 }
+
+// Tests PushBack Function
 func TestPushBack(t *testing.T) {
 	link := &LinkedList[string]{}
 	firststring := "Test"
@@ -110,6 +116,7 @@ func TestPushBack(t *testing.T) {
 	}
 }
 
+// Tests Insert at Index Function
 func TestInsertIndex(t *testing.T) {
 	link := &LinkedList[int]{}
 	_, err := link.InsertIndex(123, 5)
@@ -153,6 +160,8 @@ func TestInsertIndex(t *testing.T) {
 		t.Error("End of Linked List Expected")
 	}
 }
+
+// Tests Deleting Date and Deleting Node Functions
 func TestDeleteDataNode(t *testing.T) {
 	values := []int{4, 7, 1, 30, 9, 20, 0, 89, 50}
 	link := &LinkedList[int]{}

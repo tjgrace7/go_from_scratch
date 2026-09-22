@@ -7,6 +7,7 @@ import (
 	"time"
 )
 
+// Tests the GET/SET/DELETE Methods
 func TestGetSetDelete(t *testing.T) {
 	s := Create()
 
@@ -50,22 +51,26 @@ func TestGetSetDelete(t *testing.T) {
 	}
 }
 
+// Tests Clean up function
 func TestCleanUp(t *testing.T) {
 	s := Create()
+	//Sets function with expirations
 	s.Set([]string{"name", "Tyler", "EX", "15"})
 
 	s.Set([]string{"age", "27", "EX", "60"})
 	s.Set([]string{"home", "208 Maple Ave", "EX", "3"})
+	//Sleeps
 	time.Sleep(time.Duration(5) * time.Second)
+	//Attempts to GET expired Key
 	_, err := s.Get("home")
 	if err == nil {
 		t.Error("Key Should Be Expired")
 	}
 	time.Sleep(time.Duration(10) * time.Second)
+	//Cleans up Expired Keys
 	s.CleanUp()
 	_, err = s.Get("name")
-	//Tests Clean Up
-
+	//Tests Clean Up. Making sure the Error Matches Key Not Found, instead of Expired
 	if err != ErrKeyNotFound {
 		t.Error("Cleanup Should have made key not exist", err)
 	}
@@ -75,7 +80,9 @@ func TestCleanUp(t *testing.T) {
 	}
 }
 
+// Tests Concurrent Functions for Race Conditions
 func TestConcurrency(t *testing.T) {
+	//Loops 10 times
 	for i := 0; i < 10; i++ {
 		s := Create()
 		var wg sync.WaitGroup
@@ -83,7 +90,9 @@ func TestConcurrency(t *testing.T) {
 		s.Set([]string{"name", "tyler", "EX", "1"})
 		time.Sleep(time.Duration(1) * time.Second)
 		wg.Add(2)
+		//Attempts to GET Expired Key
 		go func() { defer wg.Done(); s.Get("name") }()
+		//Sets New Key
 		go func() { defer wg.Done(); s.Set([]string{"name", "George"}) }()
 		wg.Wait()
 
@@ -97,6 +106,7 @@ func TestConcurrency(t *testing.T) {
 	}
 }
 
+// Benchmark speed of Concurrency
 func BenchmarkConcurrency(b *testing.B) {
 
 	s := Create()
@@ -104,7 +114,7 @@ func BenchmarkConcurrency(b *testing.B) {
 
 	for b.Loop() {
 		wg.Add(10)
-
+		//10 Concurrent Functions have to wait in line
 		go func() { defer wg.Done(); s.Set([]string{"name", "Tyler"}) }()
 		go func() { defer wg.Done(); s.Get("name") }()
 		go func() { defer wg.Done(); s.Set([]string{"age", "26"}) }()
@@ -118,6 +128,8 @@ func BenchmarkConcurrency(b *testing.B) {
 		wg.Wait()
 	}
 }
+
+// Benchmarks same 10 functions as Concurrency ran Sequentially
 func BenchmarkSequential(b *testing.B) {
 
 	s := Create()
