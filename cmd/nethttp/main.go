@@ -15,22 +15,27 @@ import (
 
 var serverStartTime time.Time
 
+// Authorizes the request.
 func Authorization(req *http.Request, w http.ResponseWriter) error {
 	auth := req.Header.Get("Authorization")
 	api_key := os.Getenv("API_KEY")
+	//checks for api_key in .env
 	if api_key == "" {
 		http.Error(w, "Server Missing Authorization Key", http.StatusInternalServerError)
 		return fmt.Errorf("No Authorization Key in Server")
 	}
+	//checks for auth header
 	if auth == "" {
 		http.Error(w, "Missing Authorization Key", http.StatusBadRequest)
 		return fmt.Errorf("No Authorization Key in Header")
 	}
+	//checks to see if request if formatted properly
 	token, found := strings.CutPrefix(auth, "Bearer ")
 	if !found {
 		http.Error(w, "Authorization Header Misformatted", http.StatusBadRequest)
 		return fmt.Errorf("Impropert API Format")
 	}
+	//checks to see if header matches api_key
 	if token != api_key {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return fmt.Errorf("Unauthorized")
@@ -38,8 +43,8 @@ func Authorization(req *http.Request, w http.ResponseWriter) error {
 	return nil
 }
 
-//Age set to String to simplify mapping
-
+// Age set to String to simplify mapping
+// User struct
 type User struct {
 	Name  string `json:"name"`
 	Age   string `json:"age"`
@@ -47,9 +52,9 @@ type User struct {
 }
 
 func main() {
-
 	godotenv.Load()
 	mux := http.NewServeMux()
+	//Handles GET /address
 	mux.HandleFunc("GET /address", func(w http.ResponseWriter, req *http.Request) {
 		err := Authorization(req, w)
 		if err != nil {
@@ -58,6 +63,7 @@ func main() {
 		io.WriteString(w, "request allowed\n")
 		fmt.Println("Address ran")
 	})
+	//Handles GET /uptime
 	mux.HandleFunc("GET /uptime", func(w http.ResponseWriter, req *http.Request) {
 		err := Authorization(req, w)
 		if err != nil {
@@ -68,6 +74,7 @@ func main() {
 		fmt.Println("The Server has been running for " + truncate.String())
 		io.WriteString(w, "The Server has been running for "+truncate.String())
 	})
+	//Handles POST /server
 	mux.HandleFunc("POST /server", func(w http.ResponseWriter, req *http.Request) {
 		err := Authorization(req, w)
 		if err != nil {
@@ -95,6 +102,7 @@ func main() {
 		fmt.Printf("Mapped struct: %+v\n", user)
 		io.WriteString(w, "The Users name is "+user.Name)
 	})
+	//runs the server
 	serverStartTime = time.Now()
 	srv := http.Server{
 		Addr:         ":8080",

@@ -51,6 +51,7 @@ type Request struct {
 func RequestHandler(parts []string, r Request) Request {
 	requestLine := make(map[string]string)
 	headersparsed := false
+	//Checks for the "" to see if the body has started
 	for i, line := range parts[1:] {
 
 		if line == "" {
@@ -75,6 +76,7 @@ func RequestHandler(parts []string, r Request) Request {
 	}
 	s := fmt.Sprint(len(requestLine["Body"]))
 	fmt.Println("Content-Type:", requestLine["Content-Type"], "Body Length:", s, "Content-Length:", requestLine["Content-Length"], "Agent:", requestLine["User-Agent"], "Authorization:", requestLine["Authorization"])
+	//searches for request headers
 	contentlength := requestLine["Content-Length"]
 	if r.ContentLength != "" {
 		contentlength = r.ContentLength
@@ -102,6 +104,7 @@ func RequestHandler(parts []string, r Request) Request {
 	}
 }
 
+// Returns the Server address
 func GetServerAddress(address string) string {
 	return HTTPResponse(200, "OK", "address = "+address, "text/plain")
 }
@@ -113,6 +116,7 @@ func GetServerUptime() string {
 	return HTTPResponse(200, "OK", "uptime = "+uptime.String(), "text/plain")
 }
 
+// Submits to write connection. This could be updated to a database or use the toyRedis to write to the map.
 func PostSubmit(r Request) string {
 	s := fmt.Sprintf("%d", len(r.Body))
 	return HTTPResponse(200, "OK", "POST body length "+s, "text/plain")
@@ -120,7 +124,6 @@ func PostSubmit(r Request) string {
 
 // Starts the Server and listens for incoming connections, handling each connection in a separate goroutine.
 func runServer(listen net.Listener) {
-	defer listen.Close()
 	fmt.Println("Server is listening on", listen.Addr())
 	for {
 		conn, err := listen.Accept()
@@ -132,10 +135,12 @@ func runServer(listen net.Listener) {
 	}
 }
 
+// Authenticates the request
 func Authenticator(r Request) (string, bool) {
 	maintain := true
 	response := HTTPResponse(200, "Ok", "Keep Going", "text/plain")
 	api_key := os.Getenv("API_KEY")
+	//Checks Api_key in .env
 	if api_key == "" {
 		fmt.Println("API_KEY not found in .env file")
 		response = HTTPResponse(500, "500 Internal Server Error", "Internal API-KEY Reference Not Found", "text/plain")
@@ -149,6 +154,7 @@ func Authenticator(r Request) (string, bool) {
 		return response, maintain
 
 	}
+	//Checks to see if request has api key
 	if r.Authorization == "" {
 		fmt.Println("Missing API Key")
 		response = HTTPResponse(400, "Bad Request", "400 Bad Request: Missing API Key", "text/plain")
@@ -161,6 +167,7 @@ func Authenticator(r Request) (string, bool) {
 		maintain = false
 		return response, maintain
 	}
+	//compares given api_key with .env api_key
 	if subtle.ConstantTimeCompare([]byte(token), []byte(api_key)) == 0 {
 		fmt.Println("Invalid API Key")
 		response = HTTPResponse(401, "Unauthorized", "401 Unauthorized", "text/plain")
@@ -170,10 +177,12 @@ func Authenticator(r Request) (string, bool) {
 	return response, maintain
 }
 
+// Handles the incoming buffer
 func bufferloop(conn net.Conn) (Request, error) {
 	var parts []string
 	var r Request
 	r.HeaderParsed = false
+	//Runs loop until all headers are parsed. Using request handler
 	for !r.HeaderParsed {
 		fmt.Println("Headers Loop")
 		headerbuf := make([]byte, 1024)
@@ -188,11 +197,12 @@ func bufferloop(conn net.Conn) (Request, error) {
 
 		r = RequestHandler(parts, r)
 	}
+	//Gets the Method, Address, and Request Version. This all come in the first line, so we have to parse them within a line
 	r.Method = strings.TrimSpace(strings.Split(parts[0], " ")[0])
 	r.Address = strings.TrimSpace(strings.Split(parts[0], " ")[1])
 	r.Version = strings.TrimSpace(strings.Split(parts[0], " ")[2])
+	//Checks content length
 	if r.ContentLength == "" {
-
 		if r.Method == "POST" {
 			return r, fmt.Errorf("Missing Content Length")
 		} else if r.Method == "GET" {
@@ -204,6 +214,7 @@ func bufferloop(conn net.Conn) (Request, error) {
 	if lenerr != nil {
 		return r, fmt.Errorf("Content-Length Not Integer")
 	}
+	//Checks to see if there is more body from the request
 	for maxlength > len(r.Body) {
 		buf := make([]byte, 1024)
 		n, err := conn.Read(buf)
@@ -245,6 +256,7 @@ func HandleConnection(conn net.Conn) {
 		conn.Write([]byte(auth))
 		return
 	}
+	//Handles GET Methods
 	if r.Method == "GET" {
 		fmt.Print("Address", r.Address)
 		var response string
@@ -261,12 +273,10 @@ func HandleConnection(conn net.Conn) {
 		fmt.Print("\nResponse:", response)
 		conn.Write([]byte(response))
 	} else if r.Method == "POST" {
+		//Handles POST Methods
 		fmt.Print("Address", r.Address)
 		var response string
 		switch r.Address {
-		case "/address":
-			response = GetServerAddress(conn.LocalAddr().String())
-
 		case "/submit":
 			response = PostSubmit(r)
 
@@ -276,6 +286,8 @@ func HandleConnection(conn net.Conn) {
 		fmt.Print("\nResponse:", response)
 		conn.Write([]byte(response))
 	} else {
+		//Disabled other methods
+		//Could Add PUT and DELETE Methods for complete tcp. Was not necessary for understanding how the methods worked
 		conn.Write([]byte(HTTPResponse(405, "Method Not Allowed", r.Method+"Method Not Allowed", "text/plain")))
 	}
 }
@@ -284,14 +296,14 @@ func HandleConnection(conn net.Conn) {
 func main() {
 	godotenv.Load()
 	port := "8080" // Default port if not specified in .env
-
+	//Opens the server
 	listener, err = Listen("tcp", ":"+port)
 	if err != nil {
 		fmt.Println("Listen Error:", err)
 		return
 	}
 	defer listener.Close()
-
+	//Runs the Server
 	runServer(listener)
 
 }
