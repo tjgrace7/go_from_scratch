@@ -1,5 +1,5 @@
 toyRedis
-An in-memory key-value store with a Redis-style text protocol, TTL expiry, crash-safe persistence, and benchmarked/tested concurrent access. Built from scratch in Go as part of a self-taught backend engineering curriculum, no AI-generated code.
+An in-memory key-value store with a Redis-style text protocol, TTL expiry, crash-safe persistence, and benchmarked/tested concurrent access. Built from scratch in Go as part of a self-taught backend engineering curriculum.
 What it does
 toyRedis runs a TCP server that speaks a simple text protocol:
 SET name Tyler

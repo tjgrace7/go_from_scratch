@@ -18,13 +18,14 @@ type Vertex struct {
 
 // The store struct stores the map and a sync.RWMutex
 type Store struct {
-	m  map[string]Vertex
-	mu sync.RWMutex
+	m   map[string]Vertex
+	mu  sync.RWMutex
+	now func() time.Time
 }
 
 // Creates a pointer to Store
 func Create() *Store {
-	return &Store{m: map[string]Vertex{}, mu: sync.RWMutex{}}
+	return &Store{m: map[string]Vertex{}, mu: sync.RWMutex{}, now: time.Now}
 }
 
 // Sets a function in the map
@@ -55,7 +56,7 @@ func (s *Store) Set(command []string) (Vertex, error) {
 			} else {
 				//User passes an integer in seconds declaring how much time to keep the key alive for
 				duration := time.Duration(num) * time.Second
-				expiryTime = time.Now().Add(duration)
+				expiryTime = s.now().Add(duration)
 			}
 		}
 		//Checks to see if expiryTime is Zero
@@ -99,7 +100,7 @@ func (s *Store) Get(key string) (string, error) {
 		return "", err
 	}
 	//Checks to see if the key is expired
-	if t.Before(time.Now()) && !t.IsZero() {
+	if t.Before(s.now()) && !t.IsZero() {
 		delete(s.m, key)
 
 		return "", fmt.Errorf("Key Expired: Deleted")
@@ -131,8 +132,8 @@ func (s *Store) CleanUp() {
 		if err != nil {
 			continue
 		}
-		if t.Before(time.Now()) && !t.IsZero() {
-			s.Delete(k)
+		if t.Before(s.now()) && !t.IsZero() {
+			delete(s.m, k)
 		}
 	}
 

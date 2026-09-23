@@ -58,7 +58,9 @@ func HandleConnection(conn net.Conn, store *Store) {
 			conn.Write([]byte(err.Error()))
 		}
 		//Appends the string to append.txt
-		Append(append)
+		if append != nil {
+			Append(append)
+		}
 		//Writes response to Client
 		conn.Write([]byte(value + "\n"))
 	}
@@ -79,6 +81,9 @@ func runmethod(command []string, store *Store) (string, []string, error) {
 	method := command[0]
 	command = command[1:]
 	key := command[0]
+	if key == "" {
+		return "", nil, fmt.Errorf("Key Not Found")
+	}
 	//Determines which method to use
 	switch method {
 	case "SET":
@@ -106,7 +111,7 @@ func runmethod(command []string, store *Store) (string, []string, error) {
 			return "", append, err
 		}
 		//Creates Append String
-		append = []string{"GET", key}
+		append = []string{}
 		return key + ":" + value, append, nil
 	case "DELETE":
 		//Runs Delete

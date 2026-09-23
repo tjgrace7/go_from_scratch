@@ -10,7 +10,8 @@ import (
 // Tests the GET/SET/DELETE Methods
 func TestGetSetDelete(t *testing.T) {
 	s := Create()
-
+	current := time.Now()
+	s.now = func() time.Time { return current }
 	//Set/GET Test
 	s.Set([]string{"name", "tyler"})
 
@@ -44,8 +45,8 @@ func TestGetSetDelete(t *testing.T) {
 	if err != nil {
 		t.Error("Key Should Be Found", err)
 	}
-	time.Sleep(time.Duration(num) * time.Second)
-	_, err = s.Get("name")
+	current = current.Add(time.Duration(num) * time.Second)
+	_, err = s.Get("pilot")
 	if err == nil {
 		t.Error("Key Should Not Exist", err)
 	}
@@ -54,19 +55,21 @@ func TestGetSetDelete(t *testing.T) {
 // Tests Clean up function
 func TestCleanUp(t *testing.T) {
 	s := Create()
+	current := time.Now()
+	s.now = func() time.Time { return current }
 	//Sets function with expirations
 	s.Set([]string{"name", "Tyler", "EX", "15"})
 
 	s.Set([]string{"age", "27", "EX", "60"})
 	s.Set([]string{"home", "208 Maple Ave", "EX", "3"})
 	//Sleeps
-	time.Sleep(time.Duration(5) * time.Second)
+	current = current.Add(5 * time.Second)
 	//Attempts to GET expired Key
 	_, err := s.Get("home")
 	if err == nil {
 		t.Error("Key Should Be Expired")
 	}
-	time.Sleep(time.Duration(10) * time.Second)
+	current = current.Add(20 * time.Second)
 	//Cleans up Expired Keys
 	s.CleanUp()
 	_, err = s.Get("name")
@@ -85,10 +88,12 @@ func TestConcurrency(t *testing.T) {
 	//Loops 10 times
 	for i := 0; i < 10; i++ {
 		s := Create()
+		current := time.Now()
+		s.now = func() time.Time { return current }
 		var wg sync.WaitGroup
 
 		s.Set([]string{"name", "tyler", "EX", "1"})
-		time.Sleep(time.Duration(1) * time.Second)
+		current = current.Add(1 * time.Second)
 		wg.Add(2)
 		//Attempts to GET Expired Key
 		go func() { defer wg.Done(); s.Get("name") }()
@@ -121,10 +126,10 @@ func BenchmarkConcurrency(b *testing.B) {
 		go func() { defer wg.Done(); s.Set([]string{"age", "27"}) }()
 		go func() { defer wg.Done(); s.Get("age") }()
 		go func() { defer wg.Done(); s.Delete("age") }()
-		go func() { defer wg.Done(); s.Set([]string{"boobs", "perky"}) }()
-		go func() { defer wg.Done(); s.Set([]string{"boobs", "saggy"}) }()
-		go func() { defer wg.Done(); s.Get("boobs") }()
-		go func() { defer wg.Done(); s.Delete("boobs") }()
+		go func() { defer wg.Done(); s.Set([]string{"terrain", "woods"}) }()
+		go func() { defer wg.Done(); s.Set([]string{"terrain", "river"}) }()
+		go func() { defer wg.Done(); s.Get("terrain") }()
+		go func() { defer wg.Done(); s.Delete("terrain") }()
 		wg.Wait()
 	}
 }
@@ -142,10 +147,10 @@ func BenchmarkSequential(b *testing.B) {
 		s.Set([]string{"age", "27"})
 		s.Get("age")
 		s.Delete("age")
-		s.Set([]string{"boobs", "perky"})
-		s.Set([]string{"boobs", "saggy"})
-		s.Get("boobs")
-		s.Delete("boobs")
+		s.Set([]string{"terrain", "woods"})
+		s.Set([]string{"terrain", "river"})
+		s.Get("terrain")
+		s.Delete("terrain")
 	}
 
 }
